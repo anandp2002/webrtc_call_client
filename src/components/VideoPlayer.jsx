@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
-import { User } from 'lucide-react';
+import { User, VideoOff } from 'lucide-react';
 
-const VideoPlayer = ({ localStream, remoteStream, isVideoEnabled }) => {
+const VideoPlayer = ({ localStream, remoteStream, isVideoEnabled, isRemoteVideoEnabled }) => {
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
 
@@ -10,6 +10,15 @@ const VideoPlayer = ({ localStream, remoteStream, isVideoEnabled }) => {
             localVideoRef.current.srcObject = localStream;
         }
     }, [localStream]);
+
+    // Refresh local video when video track is toggled
+    useEffect(() => {
+        if (localVideoRef.current && localStream && isVideoEnabled) {
+            // Force video element to refresh by reassigning srcObject
+            localVideoRef.current.srcObject = null;
+            localVideoRef.current.srcObject = localStream;
+        }
+    }, [isVideoEnabled, localStream]);
 
     useEffect(() => {
         if (remoteVideoRef.current && remoteStream) {
@@ -22,12 +31,31 @@ const VideoPlayer = ({ localStream, remoteStream, isVideoEnabled }) => {
             {/* Remote Video (Main View) */}
             <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
                 {remoteStream ? (
-                    <video
-                        ref={remoteVideoRef}
-                        autoPlay
-                        playsInline
-                        className="w-full h-full object-cover"
-                    />
+                    <>
+                        {/* Remote Video Element */}
+                        <video
+                            ref={remoteVideoRef}
+                            autoPlay
+                            playsInline
+                            className={`w-full h-full object-cover transition-opacity duration-300 ${isRemoteVideoEnabled ? 'opacity-100' : 'opacity-0'
+                                }`}
+                        />
+
+                        {/* Camera Off Overlay - shown when remote user disables video */}
+                        {!isRemoteVideoEnabled && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 to-slate-900">
+                                <div className="text-center space-y-4 animate-in fade-in duration-500">
+                                    <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-r from-slate-700 to-slate-600">
+                                        <VideoOff className="w-12 h-12 text-gray-300" />
+                                    </div>
+                                    <div>
+                                        <p className="text-white text-xl font-semibold">Camera is off</p>
+                                        <p className="text-gray-400 mt-2">Peer has disabled their camera</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </>
                 ) : (
                     <div className="text-center space-y-4">
                         <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 animate-pulse">
@@ -49,7 +77,7 @@ const VideoPlayer = ({ localStream, remoteStream, isVideoEnabled }) => {
                         autoPlay
                         playsInline
                         muted
-                        className="w-full h-full object-cover scale-x-[-1]" // Mirror effect
+                        className="w-full h-full object-cover scale-x-[-1]"
                     />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-slate-700 to-slate-800">

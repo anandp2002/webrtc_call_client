@@ -6,7 +6,9 @@ export const useWebRTC = (socket, roomId) => {
     const [remoteStream, setRemoteStream] = useState(null);
     const [isAudioEnabled, setIsAudioEnabled] = useState(true);
     const [isVideoEnabled, setIsVideoEnabled] = useState(true);
-    const [connectionState, setConnectionState] = useState('new'); // new, connecting, connected, disconnected, failed
+    const [isRemoteVideoEnabled, setIsRemoteVideoEnabled] = useState(true);
+    const [isRemoteAudioEnabled, setIsRemoteAudioEnabled] = useState(true);
+    const [connectionState, setConnectionState] = useState('new');
     const [error, setError] = useState(null);
 
     const peerConnectionRef = useRef(null);
@@ -160,9 +162,14 @@ export const useWebRTC = (socket, roomId) => {
                 audioTrack.enabled = !audioTrack.enabled;
                 setIsAudioEnabled(audioTrack.enabled);
                 console.log('🎤 Audio:', audioTrack.enabled ? 'enabled' : 'disabled');
+
+                // Notify peer about audio state change
+                if (socket && roomId) {
+                    socket.emit('audio-toggle', { roomId, isAudioEnabled: audioTrack.enabled });
+                }
             }
         }
-    }, []);
+    }, [socket, roomId]);
 
     // Toggle video
     const toggleVideo = useCallback(() => {
@@ -171,14 +178,19 @@ export const useWebRTC = (socket, roomId) => {
             if (videoTrack) {
                 videoTrack.enabled = !videoTrack.enabled;
                 setIsVideoEnabled(videoTrack.enabled);
-                console.log('📹 Video:', videoTrack.enabled ? 'enabled' : 'disabled');
+                console.log('� Video:', videoTrack.enabled ? 'enabled' : 'disabled');
+
+                // Notify peer about video state change
+                if (socket && roomId) {
+                    socket.emit('video-toggle', { roomId, isVideoEnabled: videoTrack.enabled });
+                }
             }
         }
-    }, []);
+    }, [socket, roomId]);
 
     // Cleanup
     const cleanup = useCallback(() => {
-        console.log('🧹 Cleaning up WebRTC resources...');
+        console.log('� Cleaning up WebRTC resources...');
 
         if (localStreamRef.current) {
             localStreamRef.current.getTracks().forEach(track => track.stop());
@@ -205,6 +217,8 @@ export const useWebRTC = (socket, roomId) => {
         remoteStream,
         isAudioEnabled,
         isVideoEnabled,
+        isRemoteVideoEnabled,
+        isRemoteAudioEnabled,
         connectionState,
         error,
         initializeMedia,
@@ -215,6 +229,8 @@ export const useWebRTC = (socket, roomId) => {
         handleIceCandidate,
         toggleAudio,
         toggleVideo,
-        cleanup
+        cleanup,
+        setIsRemoteVideoEnabled,
+        setIsRemoteAudioEnabled
     };
 };

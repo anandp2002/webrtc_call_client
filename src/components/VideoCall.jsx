@@ -18,6 +18,8 @@ const VideoCall = ({ socket }) => {
         remoteStream,
         isAudioEnabled,
         isVideoEnabled,
+        isRemoteVideoEnabled,
+        isRemoteAudioEnabled,
         connectionState,
         error,
         initializeMedia,
@@ -28,7 +30,9 @@ const VideoCall = ({ socket }) => {
         handleIceCandidate,
         toggleAudio,
         toggleVideo,
-        cleanup
+        cleanup,
+        setIsRemoteVideoEnabled,
+        setIsRemoteAudioEnabled
     } = useWebRTC(socket, roomId);
 
     useEffect(() => {
@@ -92,7 +96,17 @@ const VideoCall = ({ socket }) => {
 
         socket.on('peer-left', () => {
             console.log('👋 Peer left the room');
-            // Could show a notification here
+        });
+
+        // Listen for peer media state changes
+        socket.on('peer-video-toggle', ({ isVideoEnabled }) => {
+            console.log('📹 Peer video:', isVideoEnabled ? 'enabled' : 'disabled');
+            setIsRemoteVideoEnabled(isVideoEnabled);
+        });
+
+        socket.on('peer-audio-toggle', ({ isAudioEnabled }) => {
+            console.log('🎤 Peer audio:', isAudioEnabled ? 'enabled' : 'disabled');
+            setIsRemoteAudioEnabled(isAudioEnabled);
         });
 
         return () => {
@@ -103,8 +117,10 @@ const VideoCall = ({ socket }) => {
             socket.off('answer');
             socket.off('ice-candidate');
             socket.off('peer-left');
+            socket.off('peer-video-toggle');
+            socket.off('peer-audio-toggle');
         };
-    }, [socket, roomId]);
+    }, [socket, roomId, initializeMedia, createPeerConnection, createOffer, handleOffer, handleAnswer, handleIceCandidate, setIsRemoteVideoEnabled, setIsRemoteAudioEnabled]);
 
     const handleEndCall = () => {
         if (socket) {
@@ -175,8 +191,7 @@ const VideoCall = ({ socket }) => {
 
             {/* Connection Status */}
             <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20">
-                <div className={`glass-effect rounded-full px-4 py-2 flex items-center gap-2 ${connectionState === 'connected' ? 'border-green-500/50' : ''
-                    }`}>
+                <div className={`glass-effect rounded-full px-4 py-2 flex items-center gap-2 ${connectionState === 'connected' ? 'border-green-500/50' : ''}`}>
                     <div className={`w-2 h-2 rounded-full ${connectionState === 'connected' ? 'bg-green-400 animate-pulse' :
                             connectionState === 'connecting' ? 'bg-yellow-400 animate-pulse' :
                                 connectionState === 'failed' ? 'bg-red-400' :
@@ -193,6 +208,7 @@ const VideoCall = ({ socket }) => {
                 localStream={localStream}
                 remoteStream={remoteStream}
                 isVideoEnabled={isVideoEnabled}
+                isRemoteVideoEnabled={isRemoteVideoEnabled}
             />
 
             {/* Controls */}
